@@ -130,8 +130,6 @@ CalendarPicker = function (element, options) {
 		//click calendar表示button
 		self.$element.on('click', self.o.showButtonSelector, function (e) {
 			//index番目のcalendarが非表示ならば表示する
-//			console.log( self.$calendar.eq(0)[0] );
-			console.log( self.index );
 			if (self.$calendar.eq(self.index).is(':hidden')) {
 				self._displayCalendar('show');
 			} else {
