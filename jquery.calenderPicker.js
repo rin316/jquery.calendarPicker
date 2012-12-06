@@ -1,48 +1,57 @@
 /*!
- * jquery.calenderPicker.js
+ * jquery.calendarPicker.js
  *
  * @varsion   1.0
  * @require   jquery.js
- * @create    2012-11-20
- * @modify    2012-11-20
+ * @create    2012-11-12
+ * @modify    2012-11-16
  * @author    rin316 [Yuta Hayashi]
- * @link      https://github.com/rin316/jquery.calenderPicker/
+ * @link      https://github.com/rin316/jquery.calendarPicker/
  */
+
+/*
+ * TODO 単独カレンダーの表示に対応させる
+ *
+ */
+
+
 ;(function ($, window, undefined) {
 'use strict'
 
-var CalenderPicker;
-var PLUGIN_NAME = 'calenderPicker';
+var CalendarPicker;
+var PLUGIN_NAME = 'calendarPicker';
 var DEFAULT_OPTIONS;
 
 /**
  * DEFAULT_OPTIONS
  */
 DEFAULT_OPTIONS = {
-	 inputSelector:           '.wgt-calender-input'
-	,showButtonSelector:      '.wgt-calender-btn'
-	,calenderWrapperSelector: '.wgt-calender-wrapper'
-	,calenderSelector:        '.wgt-calender'
-	,calenderDateSelector:    'td a'
-	,calenderTrMonthSelector: '.wgt-calender-table-tr-month'
-	,calenderThMonthSelector: '.wgt-calender-table-th-month'
-	,prevSelector:            '.wgt-calender-prev'
-	,nextSelector:            '.wgt-calender-next'
-	,selectYearSelector:      '.wgt-calender-select-year'
-	,selectMonthSelector:     '.wgt-calender-select-month'
-	,disableClassName:        'wgt-calender-disable'
-	,selectedClassName:       'wgt-calender-selected'
-	,satClassName:            'wgt-calender-sat' //false || className
-	,sunClassName:            'wgt-calender-sun' //false || className
-	,movedCalenderInBody:     true
+	 inputSelector:           '.wgt-calendar-input'
+	,showButtonSelector:      '.wgt-calendar-btn'
+	,calendarWrapperSelector: '.wgt-calendar-wrapper'
+	,calendarSelector:        '.wgt-calendar-item'
+	,calendarDateSelector:    'td a'
+	,calendarTrMonthSelector: '.wgt-calendar-table-tr-month'
+	,calendarThMonthSelector: '.wgt-calendar-table-th-month'
+	,prevSelector:            '.wgt-calendar-prev'
+	,nextSelector:            '.wgt-calendar-next'
+	,selectYearSelector:      '.wgt-calendar-select-year'
+	,selectMonthSelector:     '.wgt-calendar-select-month'
+	,disableClassName:        'wgt-calendar-disabled'
+	,selectedClassName:       'wgt-calendar-selected'
+	,movedCalendarInBody:     true
 	,movedSelectsInTh:        false
-	,disabledDay: false //false || array || e.g. [5, 6] - 特定の曜日選択を無効にする [0:月 1:火 2:水 3:木 4:金 5:土 6:日]
+	,calendarZIndex:          3
+	,setClassOnSat:           'wgt-calendar-sat' //className || false - 土曜日のcellにclassを付与する。falseで無効
+	,setClassOnSun:           'wgt-calendar-sun' //className || false - 日曜日のcellにclassを付与する。falseで無効
+	,setDisabledOnWeek:       false //array (e.g. [5, 6]) || false - 特定の曜日にdisableClassを付与。[0:月 1:火 2:水 3:木 4:金 5:土 6:日] falseで無効
+	,setDisabledOnblankDay:   true //true || false - 空白のcellにdisableClassを付与する。falseで無効
 };
 
 /**
- * CalenderPicker
+ * CalendarPicker
  */
-CalenderPicker = function (element, options) {
+CalendarPicker = function (element, options) {
 	var  self = this
 		,date
 		;
@@ -50,15 +59,15 @@ CalenderPicker = function (element, options) {
 	self.$element         = $(element);
 	self.$input           = self.$element.find(self.o.inputSelector);
 	self.$showBtn         = self.$element.find(self.o.showButtonSelector);
-	self.$calenderWrapper = self.$element.find(self.o.calenderWrapperSelector);
-	self.$calender        = self.$calenderWrapper.find(self.o.calenderSelector);
-	self.$calenderDate    = self.$calender.find(self.o.calenderDateSelector);
-	self.$calenderTr      = self.$calender.find('tr').not(self.o.calenderTrMonthSelector);//年月のtitle thを除外
-	self.$calenderThMonth = self.$calender.find(self.o.calenderThMonthSelector);
-	self.$prev            = self.$calenderWrapper.find(self.o.prevSelector);
-	self.$next            = self.$calenderWrapper.find(self.o.nextSelector);
-	self.$selectYear      = self.$calenderWrapper.find(self.o.selectYearSelector);
-	self.$selectMonth     = self.$calenderWrapper.find(self.o.selectMonthSelector);
+	self.$calendarWrapper = self.$element.find(self.o.calendarWrapperSelector);
+	self.$calendar        = self.$calendarWrapper.find(self.o.calendarSelector);
+	self.$calendarDate    = self.$calendar.find(self.o.calendarDateSelector);
+	self.$calendarTr      = self.$calendar.find('tr').not(self.o.calendarTrMonthSelector);//年月のtitle thを除外
+	self.$calendarThMonth = self.$calendar.find(self.o.calendarThMonthSelector);
+	self.$prev            = self.$calendarWrapper.find(self.o.prevSelector);
+	self.$next            = self.$calendarWrapper.find(self.o.nextSelector);
+	self.$selectYear      = self.$calendarWrapper.find(self.o.selectYearSelector);
+	self.$selectMonth     = self.$calendarWrapper.find(self.o.selectMonthSelector);
 	self.$select          = self.$selectMonth.add(self.$selectYear);
 
 	self.index            = null;
@@ -66,7 +75,7 @@ CalenderPicker = function (element, options) {
 	self.indexMonth       = null;
 
 	date = new Date;
-	//currentMonthを1ヶ月進ませる
+	//2つ並んだカレンダーのうち右側をcurrentとして計算するために、currentMonthを1ヶ月進ませる
 	date.setMonth(date.getMonth() + 1);
 	self.currentYear      = date.getFullYear();
 	self.currentMonth     = date.getMonth() + 1;
@@ -76,22 +85,24 @@ CalenderPicker = function (element, options) {
 
 
 /**
- * CalenderPicker.prototype
+ * CalendarPicker.prototype
  */
 (function (fn) {
 	/**
 	 * init
 	 */
 	fn.init = function () {
-		var self = this;
+		var self = this
+			,index;
 
 		//今月のindexに更新
-		self._filterItem({
+		index = self._getIndex({
 			 year: self.currentYear
 			,month: self.currentMonth
 		});
-
-		self._movedCalenderInBody();
+		self._indexUpdate(index);
+		self._prepareDomInBody();
+		self._setPos();
 		//年,月のselect要素内にoptionを生成(data属性から取得)
 		self._createSelectOptions();
 		//月のselect要素内option を indexYear年の月一覧に更新
@@ -99,8 +110,8 @@ CalenderPicker = function (element, options) {
 		//年,月のselect要素内option の selectedを更新
 		self._refreshSelectSelected();
 		//年,月のselect要素をtable th内に移動
-		self._movedSelectsInTh('init');
-		self._displayCalender('hide');
+		self._prepareSelectsDomInTh('init');
+		self._displayCalendar('hide');
 		self._setClass();
 		self._showButton();
 		//Eventをbind
@@ -116,31 +127,33 @@ CalenderPicker = function (element, options) {
 		/**
 		 * Event
 		 */
-		//click calender表示button
+		//click calendar表示button
 		self.$element.on('click', self.o.showButtonSelector, function (e) {
-			//index番目のcalenderが非表示ならば表示する
-			if (self.$calender.eq(self.index).is(':hidden')) {
-				self._displayCalender('show');
+			//index番目のcalendarが非表示ならば表示する
+//			console.log( self.$calendar.eq(0)[0] );
+			console.log( self.index );
+			if (self.$calendar.eq(self.index).is(':hidden')) {
+				self._displayCalendar('show');
 			} else {
-				self._displayCalender('hide');
+				self._displayCalendar('hide');
 			}
 			e.preventDefault();
 			e.stopPropagation();
 		});
 
-		//click calender日付cell
-		self.$calenderWrapper.on('click', self.o.calenderSelector + ' ' + self.o.calenderDateSelector, function (e) {
+		//click calendar日付cell
+		self.$calendarWrapper.on('click', self.o.calendarSelector + ' ' + self.o.calendarDateSelector, function (e) {
 			var  $this = $(this)
-				,date = $this.attr('data-calender-date')
+				,date = $this.attr('data-calendar-date')
 				;
-			//もし$calenderDateのclassが disabledだったら処理を停止
+			//もし$calendarDateのclassが disabledだったら処理を停止
 			if (self._isDisabled($this)) { return false; }
 			self.$input.val(date);
 
-			self.$calenderDate.removeClass(self.o.selectedClassName);
+			self.$calendarDate.removeClass(self.o.selectedClassName);
 			$this.addClass(self.o.selectedClassName);
 
-			self._displayCalender('hide');
+			self._displayCalendar('hide');
 			e.preventDefault();
 		});
 
@@ -148,20 +161,20 @@ CalenderPicker = function (element, options) {
 		 * Event > Control
 		 */
 		//click prev button
-		self.$calenderWrapper.on('click', self.o.prevSelector, function (e) {
+		self.$calendarWrapper.on('click', self.o.prevSelector, function (e) {
 			self._prev();
 			e.preventDefault();
 		});
 
 		//click next button
-		self.$calenderWrapper.on('click', self.o.nextSelector, function (e) {
+		self.$calendarWrapper.on('click', self.o.nextSelector, function (e) {
 			self._next();
 			e.preventDefault();
 		});
 
 		//change select year
 		//$selectYearの値が変わった時に$selectMonth内のoptionを書き換える
-		self.$calenderWrapper.on('change', self.o.selectYearSelector, function (e) {
+		self.$calendarWrapper.on('change', self.o.selectYearSelector, function (e) {
 			var  selectedYear = self.$selectYear.val()
 				,selectedMonth = self.$selectMonth.val()
 				;
@@ -172,34 +185,44 @@ CalenderPicker = function (element, options) {
 		});
 
 		//change select year, select month
-		self.$calenderWrapper.on('change', self.o.selectYearSelector + ',' + self.o.selectMonthSelector, function (e) {
-			var  selectedYear = self.$selectYear.val()
+		self.$calendarWrapper.on('change', self.o.selectYearSelector + ',' + self.o.selectMonthSelector, function (e) {
+			var  index
+				,selectedYear = self.$selectYear.val()
 				,selectedMonth = self.$selectMonth.val()
 				;
-			//selectedされたoptionの年,月カレンダーを表示
-			self._filterItem({
+			//selectedされたoptionのindexに更新
+			index = self._getIndex({
 				 year: selectedYear
 				,month: selectedMonth
 			});
+			self._indexUpdate(index);
 			//年,月のselect要素内option の selectedを更新
 			self._refreshSelectSelected();
 			//年,月のselect要素をtable th内に移動
-			self._movedSelectsInTh();
-			self._displayCalender('show');
+			self._prepareSelectsDomInTh();
+			self._displayCalendar('show');
 			self._showButton();
 		});
 
 		/**
 		 * Event > show Area, hide Area
 		 */
-		//$calenderWrapperの領域外をclickしたら$calenderWrapperを閉じる
+		//$calendarWrapperの領域外をclickしたら$calendarWrapperを閉じる
 		$(document).on('click', function (e) {
-			self._displayCalender('hide');
+			self._displayCalendar('hide');
 		});
 
-		//$calenderWrapperの領域内をclickしても閉じないようにbubbling stop
-		self.$calenderWrapper.on('click', function (e) {
+		//$calendarWrapperの領域内をclickしても閉じないようにbubbling stop
+		self.$calendarWrapper.on('click', function (e) {
 			e.stopPropagation();
+		});
+
+		/**
+		 * Event > resize
+		 */
+		//resize時にcalendar位置を修正
+		$(window).on('resize', function () {
+			self._setPos();
 		});
 	};
 
@@ -213,53 +236,59 @@ CalenderPicker = function (element, options) {
 			,toIndex = index
 			;
 		toIndex = (toIndex < 1) ? 1 : toIndex;
-		toIndex = (toIndex > self.$calender.length - 1) ? self.$calender.length - 1 : toIndex;
+		toIndex = (toIndex > self.$calendar.length - 1) ? self.$calendar.length - 1 : toIndex;
 		//updata index number
 		self.index = toIndex;
 		//updata index year, index month
-		self.indexYear  = parseFloat( self.$calender.eq(self.index).attr('data-calender-year') );
-		self.indexMonth = parseFloat( self.$calender.eq(self.index).attr('data-calender-month') );
+		self.indexYear  = parseFloat( self.$calendar.eq(self.index).attr('data-calendar-year') );
+		self.indexMonth = parseFloat( self.$calendar.eq(self.index).attr('data-calendar-month') );
 	};
 
 	/**
-	 * _filterItem
-	 * indexを 引数のyearとmonthから検索した要素のindex番号 に更新(data属性から検索)
-	 * year:  {number} - year年の要素を探す
-	 * month: {number} - month月の要素を探す
+	 * _getIndex
+	 * 引数setDateから検索したcalendarのindexを返す
+	 * getDate.year:  {number} - getDate.year年の要素を探す
+	 * getDate.month: {number} - getDate.month月の要素を探す
 	 */
-	fn._filterItem = function (option) {
-		var self = this;
-		self.$calender.each(function (index) {
+	fn._getIndex = function (getDate) {
+		var self = this
+			,index
+			;
+		self.$calendar.each(function (i) {
 			var  $this = $(this)
-				,thisYear  = parseFloat($this.attr('data-calender-year'))
-				,thisMonth = parseFloat($this.attr('data-calender-month'))
+				,dataYear  = parseFloat($this.attr('data-calendar-year'))
+				,dataMonth = parseFloat($this.attr('data-calendar-month'))
+				,getYear   = parseFloat(getDate.year)
+				,getMonth  = parseFloat(getDate.month)
 				;
-			if (thisYear  === parseFloat(option.year) &&
-				thisMonth === parseFloat(option.month)){
-				//見つかった要素のindex番号に更新
-				self._indexUpdate(index);
+			if (dataYear  === getYear &&
+				dataMonth === getMonth){
+				//見つかったcalendarのindex番号を返す
+				index = i;
+				return false; //break
 			}
 		});
+		return index;
 	};
 
 	/**
-	 * _displayCalender
-	 * indexとその次の番号のcalenderを表示
+	 * _displayCalendar
+	 * indexとその次の番号のcalendarを表示
 	 */
-	fn._displayCalender = function (context) {
+	fn._displayCalendar = function (context) {
 		var self = this;
 		switch (context) {
 			//表示
 			case 'show':
-				self.$calenderWrapper.show();
-				self.$calender.hide();
-				self.$calender.eq(self.index).show()
+				self.$calendarWrapper.show();
+				self.$calendar.hide();
+				self.$calendar.eq(self.index).show()
 					.prev().show();
 				break;
 			//非表示
 			case 'hide':
-				self.$calenderWrapper.hide();
-				self.$calender.hide();
+				self.$calendarWrapper.hide();
+				self.$calendar.hide();
 				break;
 		}
 	};
@@ -275,12 +304,13 @@ CalenderPicker = function (element, options) {
 		self.optionYear = '';
 		self.optionMonth = {};
 
-		self.$calender.each(function (i) {
+		self.$calendar.each(function (i) {
 			var  $this = $(this)
-				,thisYear  = parseFloat($this.attr('data-calender-year'))
-				,thisMonth = parseFloat($this.attr('data-calender-month'))
+				,thisYear  = parseFloat($this.attr('data-calendar-year'))
+				,thisMonth = parseFloat($this.attr('data-calendar-month'))
 				;
 			//最初の月を除外するためにcontinueで抜ける
+			//TODO 単独カレンダー表示(未実装)の時にcontinue不要
 			if (i === 0) { return true; }
 
 			//年の生成
@@ -300,24 +330,30 @@ CalenderPicker = function (element, options) {
 	};
 
 	/**
-	 * _movedCalenderInBody
-	 * $calenderWrapper をbody直下に移動する
+	 * _prepareDomInBody
+	 * body直下に $calendarWrapper を移動する
 	 */
-	fn._movedCalenderInBody = function () {
-		if (this.o.movedCalenderInBody){
+	fn._prepareDomInBody = function () {
+		if (this.o.movedCalendarInBody){
+			$('body').append(this.$calendarWrapper);
+		}
+	};
+
+	/**
+	 * _setPos
+	 * $inputの左下に来るよう $calendarWrapper に position set
+	 */
+	fn._setPos = function () {
+		if (this.o.movedCalendarInBody){
 			var self = this
-				,inputX
-				,inputY
-				,inputH
+				,inputX = self.$input.offset().left
+				,inputY = self.$input.offset().top
+				,inputH = self.$input.outerHeight()
 				;
-			inputX = self.$input.offset().left;
-			inputY = self.$input.offset().top;
-			inputH = self.$input.outerHeight();
-			//移動
-			$('body').append(self.$calenderWrapper);
 			//set position
-			self.$calenderWrapper.css({
-				position: 'absolute'
+			self.$calendarWrapper.css({
+				 position: 'absolute'
+				,zIndex: self.o.calendarZIndex
 				,left: inputX
 				,top: inputY + inputH
 			});
@@ -325,26 +361,26 @@ CalenderPicker = function (element, options) {
 	};
 
 	/**
-	 * _movedSelectsInTh
-	 * select要素をcalender thに移動する
+	 * _prepareSelectsDomInTh
+	 * select要素をcalendar内thに移動する
 	 */
-	fn._movedSelectsInTh = function (context) {
+	fn._prepareSelectsDomInTh = function (context) {
 		if (this.o.movedSelectsInTh){
 			var self = this;
 			//th.dataにth.textをset
 			if (context === 'init'){
-				self.$calenderThMonth.each(function () {
+				self.$calendarThMonth.each(function () {
 					var $this = $(this);
-					$this.data('calender-th', $this.text());
+					$this.data('calendar-th', $this.text());
 				});
 			}
 			//selectをindexのthに移動
-			self.$calenderThMonth.eq(self.index).html(self.$select);
+			self.$calendarThMonth.eq(self.index).html(self.$select);
 			//一旦元のtextに戻す
-			self.$calenderThMonth.each(function () {
+			self.$calendarThMonth.each(function () {
 				var $this = $(this);
 				if($this.find('select')[0]) { return true; }//IE9 fix - selectを含む場合は削除しない
-				$this.html($this.data('calender-th'));
+				$this.html($this.data('calendar-th'));
 			});
 		}
 	};
@@ -373,36 +409,41 @@ CalenderPicker = function (element, options) {
 	 * 各cellに土日やdisabledのclassをsetする
 	 */
 	fn._setClass = function () {
-		var self = this;
-		self.$calenderTr.each(function () {
-			var $this = $(this),
-				$thisChildren
-				;
-			//$thisChildrenを td aとしてset。見つからなければth(曜日のcell)としてset
-			$thisChildren = (function () {
-				var item = $this.find(self.o.calenderDateSelector);
-				return (item[0]) ? item : $this.find('th')
-			})();
-			//textが空白の場合はdisableClassNameをset
-			$thisChildren.each(function () {
-				$this = $(this);
-				if ($this.text().match(/(\s|\u00A0)/)) {
-					$this.addClass(self.o.disableClassName);
-				}
-			});
-			//tr td aにdisableClassNameをset
-			if (self.o.disabledDay) {
-				for (var i = 0, length = self.o.disabledDay.length; i < length; i++) {
-					$($thisChildren[ self.o.disabledDay[i] ]).addClass(self.o.disableClassName);
-				}
-			}
+		if (this.o.setClassOnSat || this.o.setClassOnSun || this.o.setDisabledOnWeek || this.o.setDisabledOnblankDay) {
+			var self = this;
+			self.$calendarTr.each(function () {
+				var $this = $(this),
+					$thisChildren
+					;
+				//$thisChildrenを td aとしてset。見つからなければth(曜日のcell)としてset
+				$thisChildren = (function () {
+					var item = $this.find(self.o.calendarDateSelector);
+					return (item[0]) ? item : $this.find('th')
+				})();
 
-			//$thisChildren が a要素の場合は親のtdに設定し直す (IE6 fix - aに複数のclassを指定するとcssが最後のclassにしか効かないので、tdとaに分けてclassをsetする)
-			$thisChildren = ($thisChildren.is('th')) ? $thisChildren : $thisChildren.parent();
-			//tr th, tr td に土曜・日曜のclassをset
-			$($thisChildren[5]).addClass(self.o.satClassName);
-			$($thisChildren[6]).addClass(self.o.sunClassName);
-		});
+				//textが空白の場合はdisableClassNameをset
+				if (self.o.setDisabledOnblankDay) {
+					$thisChildren.each(function () {
+						$this = $(this);
+						if ($this.text().match(/(\s|\u00A0)/)) {
+							$this.addClass(self.o.disableClassName);
+						}
+					});
+				}
+				//tr td aにdisableClassNameをset
+				if (self.o.setDisabledOnWeek) {
+					for (var i = 0, length = self.o.setDisabledOnWeek.length; i < length; i++) {
+						$($thisChildren[ self.o.setDisabledOnWeek[i] ]).addClass(self.o.disableClassName);
+					}
+				}
+
+				//$thisChildren が a要素の場合は親のtdに設定し直す (IE6 fix - aに複数のclassを指定するとcssが最後のclassにしか効かないので、tdとaに分けてclassをsetする)
+				$thisChildren = ($thisChildren.is('th')) ? $thisChildren : $thisChildren.parent();
+				//tr th, tr td に土曜・日曜のclassをset
+				$($thisChildren[5]).addClass(self.o.setClassOnSat);
+				$($thisChildren[6]).addClass(self.o.setClassOnSun);
+			});
+		}
 	};
 
 	/**
@@ -415,7 +456,7 @@ CalenderPicker = function (element, options) {
 
 	/**
 	 * _prev
-	 * 前のcalenderを表示する
+	 * 前のcalendarを表示する
 	 */
 	fn._prev = function () {
 		var self = this;
@@ -425,14 +466,14 @@ CalenderPicker = function (element, options) {
 		//年,月のselect要素内option の selectedを更新
 		self._refreshSelectSelected();
 		//年,月のselect要素をtable th内に移動
-		self._movedSelectsInTh();
-		self._displayCalender('show');
+		self._prepareSelectsDomInTh();
+		self._displayCalendar('show');
 		self._showButton();
 	};
 
 	/**
 	 * _next
-	 * 次のcalenderを表示する
+	 * 次のcalendarを表示する
 	 */
 	fn._next = function () {
 		var self = this;
@@ -442,8 +483,8 @@ CalenderPicker = function (element, options) {
 		//年,月のselect要素内option の selectedを更新
 		self._refreshSelectSelected();
 		//年,月のselect要素をtable th内に移動
-		self._movedSelectsInTh();
-		self._displayCalender('show');
+		self._prepareSelectsDomInTh();
+		self._displayCalendar('show');
 		self._showButton();
 	};
 
@@ -478,20 +519,29 @@ CalenderPicker = function (element, options) {
 	 * 次の要素があるかを判定。無ければfalseを、あればtrueを返す
 	 */
 	fn.hasNext = function () {
-		// calender2つ分表示のため、-2 している
-		return (this.index >= this.$calender.length - 1) ? false : true;
+		// calendar2つ分表示のため、-2 している
+		return (this.index >= this.$calendar.length - 1) ? false : true;
 	};
 
-})(CalenderPicker.prototype);
+})(CalendarPicker.prototype);
 
 
 /**
- * $.fn.calenderPicker
+ * $.fn.calendarPicker
  */
 $.fn[PLUGIN_NAME] = function (options) {
 	return this.each(function () {
+		//data属性にPLUGIN_NAME Objがなければインスタンス作成
 		if (!$.data(this, PLUGIN_NAME)) {
-			$.data(this, PLUGIN_NAME, new CalenderPicker(this, options));
+			$.data(this, PLUGIN_NAME, new CalendarPicker(this, options));
+		} else {
+			//data属性にPLUGIN_NAME Objが既にあれば、PLUGIN_NAME + i 名でインスタンス作成
+			for (var i = 2; true; i++) {
+				if (!$.data(this, PLUGIN_NAME + i)) {
+					$.data(this, PLUGIN_NAME + i, new CalendarPicker(this, options));
+					break;
+				}
+			}
 		}
 	});
 };

@@ -5,11 +5,11 @@
  
 (function ($, window, undefined) {
 	$(window).load(function(){
-		$('#sample1-1').calenderPicker();
+		$('#sample1-1').calendarPicker();
 	});
 
 	$(window).load(function(){
-		$('#sample2-1').calenderPicker({
+		$('#sample2-1').calendarPicker({
 			disabledDay: [5, 6]
 		});
 	});
