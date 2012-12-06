@@ -10,7 +10,7 @@
 
 	$(window).load(function(){
 		$('#sample2-1').calendarPicker({
-			disabledDay: [5, 6]
+			setDisabledOnWeek: [5, 6]
 		});
 	});
 })(jQuery, this)
